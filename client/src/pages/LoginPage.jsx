@@ -41,7 +41,8 @@ export default function LoginPage() {
                 axios.defaults.headers.common.Authorization = `Bearer ${response.data.token}`;
             }
             setMessage(response.data.message || 'Login successful');
-            if (response.data.message || response.status === 200) {
+            const isSuccessfulResponse = response.status >= 200 && response.status < 300;
+            if (isSuccessfulResponse) {
                 navigate('/');
             }
         } catch (err) {

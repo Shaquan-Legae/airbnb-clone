@@ -40,7 +40,10 @@ export default function RegisterPage() {
             });
             console.log('Registration response:', response.data);
             setMessage(response.data.message || 'Registration successful');
-            navigate('/login');
+            const isSuccessfulResponse = response.status >= 200 && response.status < 300;
+            if (isSuccessfulResponse) {
+                navigate('/');
+            }
         } catch (err) {
             console.error('Registration failed:', err);
             setError(err.response?.data?.error || 'Registration failed. Please try again.');
