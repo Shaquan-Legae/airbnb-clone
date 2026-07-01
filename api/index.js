@@ -2,6 +2,7 @@ const express = require("express");
 const cors = require("cors");
 const mongoose = require("mongoose");
 const bcrypt = require("bcryptjs");
+const jwt = require("jsonwebtoken");
 const UserModel = require("./models/Users");
 require("dotenv").config();
 
@@ -34,7 +35,7 @@ app.get("/test", (req, res) => {
   res.json({ message: "test Ok!" });
 });
 
-aapp.post("/register", async (req, res) => {
+app.post("/register", async (req, res) => {
   try {
     console.log("BODY:", req.body);
 
@@ -87,22 +88,49 @@ app.post("/login", async (req, res) => {
 
     const user = await UserModel.findOne({ email });
     if (!user) {
-      return res.status(401).json({ error: "Invalid email or password." });
+      return res.status(401).json({ error: "Invalid email or password" });
     }
 
     const passwordMatches = bcrypt.compareSync(password, user.password);
     if (!passwordMatches) {
-      return res.status(401).json({ error: "Invalid email or password." });
+      return res.status(401).json({ error: "Invalid email or password" });
     }
+
+    const token = jwt.sign(
+      { id: user._id, email: user.email },
+      process.env.JWT_SECRET || "dev-secret",
+      { expiresIn: "1d" },
+    );
 
     return res.status(200).json({
       message: "Login successful",
       user: { id: user._id, name: user.name, email: user.email },
+      token,
     });
   } catch (error) {
     console.error("Login error:", error);
     return res.status(500).json({ error: "Internal server error." });
   }
+});
+
+function authMiddleware(req, res, next) {
+  const authHeader = req.headers.authorization;
+  if (!authHeader || !authHeader.startsWith("Bearer ")) {
+    return res.status(401).json({ error: "Unauthorized" });
+  }
+
+  const token = authHeader.split(" ")[1];
+  try {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET || "dev-secret");
+    req.user = decoded;
+    next();
+  } catch (error) {
+    return res.status(401).json({ error: "Unauthorized" });
+  }
+}
+
+app.get("/profile", authMiddleware, (req, res) => {
+  res.json({ user: req.user });
 });
 
 app.listen(port, () => {
