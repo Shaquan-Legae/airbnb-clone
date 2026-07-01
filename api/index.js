@@ -1,5 +1,6 @@
 const express = require("express");
 const cors = require("cors");
+const cookieParser = require("cookie-parser");
 const mongoose = require("mongoose");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
@@ -8,6 +9,7 @@ require("dotenv").config();
 
 const app = express();
 const port = 4000;
+const jwtSecret = process.env.JWT_SECRET || "dev-secret";
 
 app.use(
   cors({
@@ -19,6 +21,7 @@ app.use(
 );
 
 app.use(express.json());
+app.use(cookieParser());
 
 console.log("MongoDB connection string:", process.env.MONGO_URL);
 
@@ -61,6 +64,18 @@ app.post("/register", async (req, res) => {
       password: hashedPassword,
     });
 
+    const token = jwt.sign(
+      { id: newUser._id, email: newUser.email },
+      jwtSecret,
+      { expiresIn: "7d" },
+    );
+
+    res.cookie("token", token, {
+      httpOnly: true,
+      sameSite: "lax",
+      maxAge: 7 * 24 * 60 * 60 * 1000,
+    });
+
     return res.status(201).json({
       message: "Registration successful",
       user: {
@@ -96,16 +111,19 @@ app.post("/login", async (req, res) => {
       return res.status(401).json({ error: "Invalid email or password" });
     }
 
-    const token = jwt.sign(
-      { id: user._id, email: user.email },
-      process.env.JWT_SECRET || "dev-secret",
-      { expiresIn: "1d" },
-    );
+    const token = jwt.sign({ id: user._id, email: user.email }, jwtSecret, {
+      expiresIn: "7d",
+    });
+
+    res.cookie("token", token, {
+      httpOnly: true,
+      sameSite: "lax",
+      maxAge: 7 * 24 * 60 * 60 * 1000,
+    });
 
     return res.status(200).json({
       message: "Login successful",
       user: { id: user._id, name: user.name, email: user.email },
-      token,
     });
   } catch (error) {
     console.error("Login error:", error);
@@ -114,14 +132,13 @@ app.post("/login", async (req, res) => {
 });
 
 function authMiddleware(req, res, next) {
-  const authHeader = req.headers.authorization;
-  if (!authHeader || !authHeader.startsWith("Bearer ")) {
+  const token = req.cookies?.token;
+  if (!token) {
     return res.status(401).json({ error: "Unauthorized" });
   }
 
-  const token = authHeader.split(" ")[1];
   try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET || "dev-secret");
+    const decoded = jwt.verify(token, jwtSecret);
     req.user = decoded;
     next();
   } catch (error) {
@@ -131,6 +148,16 @@ function authMiddleware(req, res, next) {
 
 app.get("/profile", authMiddleware, (req, res) => {
   res.json({ user: req.user });
+});
+
+app.post("/logout", (req, res) => {
+  res.cookie("token", "", {
+    httpOnly: true,
+    sameSite: "lax",
+    expires: new Date(0),
+  });
+
+  return res.json(true);
 });
 
 app.listen(port, () => {
