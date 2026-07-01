@@ -1,7 +1,21 @@
 import { Link, useParams } from "react-router-dom";
+import {
+    WifiIcon, TvIcon, HeartIcon, TruckIcon, KeyIcon, HomeIcon,
+    FireIcon, SunIcon, SparklesIcon, BoltIcon, BuildingOffice2Icon
+} from "@heroicons/react/24/outline";
 
 export default function PlacesPage() {
     const { action } = useParams();
+    const [title, setTitle] = useState('');
+    const [address, setAddress] = useState('');
+    const [photos, setAddedPhotos] = useState([]);
+    const [photoLink, setphotoLink] = useState('');
+    const [description, setDescription] = useState('');
+    const [perks, setPerks] = useState([]);
+    const [extraInfo, setExtraInfo] = useState('');
+    const [checkIn, setCheckIn] = useState('');
+    const [checkOut, setCheckOut] = useState('');
+    const [maxGuests, setMaxGuests] = useState(1);
 
     return (
         <div>
@@ -42,6 +56,95 @@ export default function PlacesPage() {
 
                                 Upload
                             </button>
+                        </div>
+
+                        <h2 className="text-xl mt-4">Description</h2>
+                        <textarea />
+                        <h2 className="text-xl mt-4">Perks</h2>
+                        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 mt-2">
+
+                            <label className="border p-4 rounded-2xl flex items-center gap-2 cursor-pointer hover:bg-gray-100 transition">
+                                <input type="checkbox" name="wifi" />
+                                <WifiIcon className="w-6 h-6" />
+                                <span>WiFi</span>
+                            </label>
+
+                            <label className="border p-4 rounded-2xl flex items-center gap-2 cursor-pointer hover:bg-gray-100 transition">
+                                <input type="checkbox" name="tv" />
+                                <TvIcon className="w-6 h-6" />
+                                <span>TV</span>
+                            </label>
+
+                            <label className="border p-4 rounded-2xl flex items-center gap-2 cursor-pointer hover:bg-gray-100 transition">
+                                <input type="checkbox" name="pets" />
+                                <HeartIcon className="w-6 h-6" />
+                                <span>Pets Allowed</span>
+                            </label>
+
+                            <label className="border p-4 rounded-2xl flex items-center gap-2 cursor-pointer hover:bg-gray-100 transition">
+                                <input type="checkbox" name="free_parking" />
+                                <TruckIcon className="w-6 h-6" />
+                                <span>Free Parking</span>
+                            </label>
+
+                            <label className="border p-4 rounded-2xl flex items-center gap-2 cursor-pointer hover:bg-gray-100 transition">
+                                <input type="checkbox" name="private_entrance" />
+                                <KeyIcon className="w-6 h-6" />
+                                <span>Private Entrance</span>
+                            </label>
+
+                            <label className="border p-4 rounded-2xl flex items-center gap-2 cursor-pointer hover:bg-gray-100 transition">
+                                <input type="checkbox" name="kitchen" />
+                                <HomeIcon className="w-6 h-6" />
+                                <span>Kitchen</span>
+                            </label>
+
+                            <label className="border p-4 rounded-2xl flex items-center gap-2 cursor-pointer hover:bg-gray-100 transition">
+                                <input type="checkbox" name="air_conditioning" />
+                                <BoltIcon className="w-6 h-6" />
+                                <span>Air Conditioning</span>
+                            </label>
+
+                            <label className="border p-4 rounded-2xl flex items-center gap-2 cursor-pointer hover:bg-gray-100 transition">
+                                <input type="checkbox" name="heating" />
+                                <FireIcon className="w-6 h-6" />
+                                <span>Heating</span>
+                            </label>
+
+                            <label className="border p-4 rounded-2xl flex items-center gap-2 cursor-pointer hover:bg-gray-100 transition">
+                                <input type="checkbox" name="pool" />
+                                <SunIcon className="w-6 h-6" />
+                                <span>Pool</span>
+                            </label>
+
+                            <label className="border p-4 rounded-2xl flex items-center gap-2 cursor-pointer hover:bg-gray-100 transition">
+                                <input type="checkbox" name="hot_tub" />
+                                <SparklesIcon className="w-6 h-6" />
+                                <span>Hot Tub</span>
+                            </label>
+
+                            <label className="border p-4 rounded-2xl flex items-center gap-2 cursor-pointer hover:bg-gray-100 transition">
+                                <input type="checkbox" name="gym" />
+                                <BuildingOffice2Icon className="w-6 h-6" />
+                                <span>Gym</span>
+                            </label>
+
+                        </div>
+
+                        <h2 className="text-xl mt-4 -mb-1">Extra Info</h2>
+                        <textarea />
+
+                        <h2 className="text-xl mt-4">Check-in & Check-out Times</h2>
+                        <div className="grid sm:grid-cols-3 gap-4 mt-2">
+                            <div>
+                                <input type="text" placeholder="Check-in Time" />
+                            </div>
+                            <div>
+                                <input type="text" placeholder="Check-out Time" />
+                            </div>
+                            <div>
+                                <input type="text" placeholder="Max Guests" />
+                            </div>
                         </div>
                     </form>
                 </div>

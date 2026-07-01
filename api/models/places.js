@@ -1,7 +1,7 @@
 const mongoose = require("mongoose");
 
 const placeSchema = new mongoose.Schema({
-  owner: {type: mongoose.Schema.Types.ObjectId, ref:'User'}
+  owner: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
   name: {
     type: String,
     required: true,
@@ -11,6 +11,11 @@ const placeSchema = new mongoose.Schema({
     required: true,
   },
   photos: [String],
+
+  perks: {
+    type: String,
+    required = true
+  },
 
   price: {
     type: Number,
