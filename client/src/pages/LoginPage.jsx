@@ -1,9 +1,11 @@
 import { Link, useNavigate } from "react-router-dom";
-import { useState } from "react";
+import { useState, useContext } from "react";
 import axios from "axios";
+import { UserContext } from "../context/UserContext";
 
 export default function LoginPage() {
     const navigate = useNavigate();
+    const { setUser } = useContext(UserContext);
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [message, setMessage] = useState('');
@@ -36,9 +38,8 @@ export default function LoginPage() {
                 password,
             });
             console.log('Login response:', response.data);
-            if (response.data.token) {
-                localStorage.setItem('token', response.data.token);
-                axios.defaults.headers.common.Authorization = `Bearer ${response.data.token}`;
+            if (response.data.user) {
+                setUser(response.data.user);
             }
             setMessage(response.data.message || 'Login successful');
             const isSuccessfulResponse = response.status >= 200 && response.status < 300;
