@@ -2,11 +2,11 @@ import { homeImages } from '../../assets/assets';
 
 export default function ShopAirbnb() {
   return (
-    <section className="mx-auto grid max-w-7xl gap-8 px-5 py-16 lg:grid-cols-2 lg:items-center lg:px-8">
+    <section className="-mb-12 mx-auto grid max-w-7xl gap-8 px-5 py-16 lg:grid-cols-2 lg:items-center lg:px-8">
       <img
         src={homeImages.shop}
         alt="A warm living room with carefully styled home products"
-        className="h-[420px] w-full rounded-lg object-cover"
+        className="h-105 w-full rounded-lg object-cover"
       />
       <div>
         <p className="text-sm font-semibold uppercase tracking-[0.18em] text-rose-600">Shop Airbnb</p>

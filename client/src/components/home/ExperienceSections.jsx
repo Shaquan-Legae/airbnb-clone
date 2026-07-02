@@ -8,7 +8,7 @@ const experiences = [
 
 export default function ExperiencesSection() {
     return (
-        <section className="mt-15 bg-neutral-950 py-16 text-white rounded-2xl">
+        <section className="mt-2 bg-neutral-950 py-16 text-white rounded-2xl">
             <div className="mx-auto grid max-w-7xl gap-8 px-5 lg:grid-cols-[1fr_1.1fr] lg:px-8">
                 <div>
                     <h2 className="text-3xl font-bold">Airbnb Experiences</h2>
