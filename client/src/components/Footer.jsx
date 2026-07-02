@@ -19,7 +19,7 @@ const footerGroups = [
 
 export default function Footer() {
     return (
-        <footer className="mt-16 border-t border-neutral-200 ">
+        <footer className="mt-16 border-t border-neutral-200 -mb-20">
             <div className="mx-auto max-w-7xl px-5 py-10 lg:px-8">
                 <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-4">
                     {footerGroups.map((group) => (
@@ -38,7 +38,7 @@ export default function Footer() {
                     ))}
                 </div>
 
-                <div className="mt-2 flex flex-col gap-4 pt-6 text-sm text-neutral-600 sm:flex-row sm:items-center sm:justify-between">
+                <div className="mt-2 flex flex-col gap-4 pt-6 text-sm text-neutral-600 sm:flex-row sm:items-center sm:justify-between -mb-5">
                     <p>© 2026 AirBnb. All rights reserved.</p>
                     <div className="flex flex-wrap gap-3">
                         <select className="rounded-full border border-neutral-300 bg-white px-2 py-2">
