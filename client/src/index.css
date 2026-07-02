@@ -4,6 +4,18 @@
     --color-primary: #F5385D;
 }
 
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(4px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
 /* INPUT STYLES */
 input[type="text"],
 input[type="password"],

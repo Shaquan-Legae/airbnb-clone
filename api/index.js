@@ -4,18 +4,30 @@ const cookieParser = require("cookie-parser");
 const mongoose = require("mongoose");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
+const fs = require("fs");
+const path = require("path");
 const UserModel = require("./models/Users");
 require("dotenv").config();
+const imageDownloader = require("image-downloader");
+const multer = require("multer");
+const Place = require("./models/places");
 
 const app = express();
 const port = 4000;
 const jwtSecret = process.env.JWT_SECRET || "dev-secret";
 
+// Create uploads folder if it doesn't exist
+const uploadsDir = path.join(__dirname, "uploads");
+if (!fs.existsSync(uploadsDir)) {
+  fs.mkdirSync(uploadsDir, { recursive: true });
+  console.log("Created uploads directory at:", uploadsDir);
+}
+
 app.use(
   cors({
     origin: ["http://localhost:5173", "http://127.0.0.1:5173"],
     credentials: true,
-    methods: ["GET", "POST", "OPTIONS"],
+    methods: ["GET", "POST", "PUT", "OPTIONS"],
     allowedHeaders: ["Content-Type"],
   }),
 );
@@ -37,6 +49,94 @@ mongoose
 app.get("/test", (req, res) => {
   res.json({ message: "test Ok!" });
 });
+
+app.post("/upload-by-link", async (req, res) => {
+  try {
+    const { link } = req.body;
+
+    if (!link) {
+      return res.status(400).json({ error: "Link parameter is required" });
+    }
+
+    const newName = Date.now() + ".jpg";
+    const uploadPath = path.join(uploadsDir, newName);
+
+    console.log("Starting image download from:", link);
+    console.log("Destination:", uploadPath);
+
+    await imageDownloader.image({
+      url: link,
+      dest: uploadPath,
+    });
+
+    console.log("Image downloaded successfully:", uploadPath);
+    res.json(newName);
+  } catch (error) {
+    console.error("Image download error:", error);
+    res.status(500).json({
+      error: "Failed to download image",
+      details: error.message,
+    });
+  }
+});
+
+app.use("/uploads", express.static(path.join(__dirname, "uploads")));
+const photosMiddleware = multer({ dest: uploadsDir });
+
+app.post("/upload", photosMiddleware.array("photos", 100), (req, res) => {
+  const uploadedFiles = [];
+
+  for (let i = 0; i < req.files.length; i++) {
+    const { path: tempPath, originalname } = req.files[i];
+
+    const ext = originalname.split(".").pop();
+    const newPath = tempPath + "." + ext;
+
+    fs.renameSync(tempPath, newPath);
+
+    uploadedFiles.push(path.basename(newPath));
+  }
+
+  res.json(uploadedFiles);
+});
+
+function getDecodedToken(req) {
+  const token = req.cookies?.token;
+
+  if (!token) {
+    return null;
+  }
+
+  return jwt.verify(token, jwtSecret);
+}
+
+function getPlaceFields(body) {
+  const {
+    title,
+    address,
+    photos,
+    description,
+    perks,
+    extraInfo,
+    checkIn,
+    checkOut,
+    maxGuests,
+    price,
+  } = body;
+
+  return {
+    title,
+    address,
+    photos,
+    description,
+    perks,
+    extraInfo,
+    checkIn,
+    checkOut,
+    maxGuests,
+    price,
+  };
+}
 
 app.post("/register", async (req, res) => {
   try {
@@ -87,6 +187,131 @@ app.post("/register", async (req, res) => {
   } catch (error) {
     console.error("Register error:", error);
     return res.status(500).json({ error: "Internal server error." });
+  }
+});
+
+app.post("/places", async (req, res) => {
+  let decoded;
+
+  try {
+    decoded = getDecodedToken(req);
+  } catch (error) {
+    return res.status(401).json({ error: "Unauthorized" });
+  }
+
+  if (!decoded) {
+    return res.status(401).json({ error: "Unauthorized" });
+  }
+
+  try {
+    const placeDoc = await Place.create({
+      owner: decoded.id,
+      ...getPlaceFields(req.body),
+    });
+
+    return res.status(201).json(placeDoc);
+  } catch (error) {
+    console.error("Create place error:", error);
+    return res.status(500).json({ error: "Failed to create place." });
+  }
+});
+
+app.get("/places", async (req, res) => {
+  try {
+    const places = await Place.find();
+    return res.json(places);
+  } catch (error) {
+    console.error("Fetch places error:", error);
+    return res.status(500).json({ error: "Failed to fetch places." });
+  }
+});
+
+app.get("/user-places", async (req, res) => {
+  let decoded;
+
+  try {
+    decoded = getDecodedToken(req);
+  } catch (error) {
+    return res.status(401).json({ error: "Unauthorized" });
+  }
+
+  if (!decoded) {
+    return res.status(401).json({ error: "Unauthorized" });
+  }
+
+  try {
+    const places = await Place.find({ owner: decoded.id });
+    return res.json(places);
+  } catch (error) {
+    console.error("Fetch user places error:", error);
+    return res.status(500).json({ error: "Failed to fetch places." });
+  }
+});
+
+app.get("/places/:id", async (req, res) => {
+  let decoded;
+
+  try {
+    decoded = getDecodedToken(req);
+  } catch (error) {
+    return res.status(401).json({ error: "Unauthorized" });
+  }
+
+  if (!decoded) {
+    return res.status(401).json({ error: "Unauthorized" });
+  }
+
+  try {
+    const placeDoc = await Place.findOne({
+      _id: req.params.id,
+      owner: decoded.id,
+    });
+
+    if (!placeDoc) {
+      return res.status(404).json({ error: "Place not found." });
+    }
+
+    return res.json(placeDoc);
+  } catch (error) {
+    console.error("Fetch place error:", error);
+    return res.status(500).json({ error: "Failed to fetch place." });
+  }
+});
+
+app.put("/places/:id", async (req, res) => {
+  let decoded;
+
+  try {
+    decoded = getDecodedToken(req);
+  } catch (error) {
+    return res.status(401).json({ error: "Unauthorized" });
+  }
+
+  if (!decoded) {
+    return res.status(401).json({ error: "Unauthorized" });
+  }
+
+  try {
+    const placeDoc = await Place.findOneAndUpdate(
+      {
+        _id: req.params.id,
+        owner: decoded.id,
+      },
+      getPlaceFields(req.body),
+      {
+        new: true,
+        runValidators: true,
+      },
+    );
+
+    if (!placeDoc) {
+      return res.status(404).json({ error: "Place not found." });
+    }
+
+    return res.json(placeDoc);
+  } catch (error) {
+    console.error("Update place error:", error);
+    return res.status(500).json({ error: "Failed to update place." });
   }
 });
 
@@ -158,6 +383,12 @@ app.post("/logout", (req, res) => {
   });
 
   return res.json(true);
+});
+
+// Global error handling middleware
+app.use((err, req, res, next) => {
+  console.error("Unhandled error:", err);
+  res.status(500).json({ error: "Internal server error" });
 });
 
 app.listen(port, () => {
