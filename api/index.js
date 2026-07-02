@@ -16,21 +16,21 @@ const app = express();
 const port = 4000;
 const jwtSecret = process.env.JWT_SECRET || "dev-secret";
 
-// Create uploads folder if it doesn't exist
 const uploadsDir = path.join(__dirname, "uploads");
 if (!fs.existsSync(uploadsDir)) {
   fs.mkdirSync(uploadsDir, { recursive: true });
   console.log("Created uploads directory at:", uploadsDir);
 }
 
-app.use(
-  cors({
-    origin: ["http://localhost:5173", "http://127.0.0.1:5173"],
-    credentials: true,
-    methods: ["GET", "POST", "PUT", "OPTIONS"],
-    allowedHeaders: ["Content-Type"],
-  }),
-);
+const corsOptions = {
+  origin: ["http://localhost:5173", "http://127.0.0.1:5173"],
+  credentials: true,
+  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization"],
+};
+
+app.use(cors(corsOptions));
+app.options(/.*/, cors(corsOptions));
 
 app.use(express.json());
 app.use(cookieParser());
@@ -47,7 +47,14 @@ mongoose
   });
 
 app.get("/test", (req, res) => {
-  res.json({ message: "test Ok!" });
+  console.log("TEST ROUTE HIT");
+
+  res.json({
+    message: "THIS IS THE NEW TEST",
+    file: __filename,
+    cwd: process.cwd(),
+    time: new Date().toISOString(),
+  });
 });
 
 app.post("/upload-by-link", async (req, res) => {
@@ -127,14 +134,17 @@ function getPlaceFields(body) {
   return {
     title,
     address,
-    photos,
+    photos: Array.isArray(photos) ? photos : [],
     description,
-    perks,
-    extraInfo,
-    checkIn,
-    checkOut,
-    maxGuests,
-    price,
+    perks: Array.isArray(perks) ? perks : [],
+    extraInfo: extraInfo || "",
+    checkIn: checkIn || "",
+    checkOut: checkOut || "",
+    maxGuests: maxGuests === undefined ? 0 : Number(maxGuests),
+    price:
+      price === undefined || price === null || price === ""
+        ? undefined
+        : Number(price),
   };
 }
 
@@ -190,6 +200,8 @@ app.post("/register", async (req, res) => {
   }
 });
 
+console.log("About to register GET /places");
+
 app.post("/places", async (req, res) => {
   let decoded;
 
@@ -217,12 +229,36 @@ app.post("/places", async (req, res) => {
 });
 
 app.get("/places", async (req, res) => {
+  console.log("===== GET /places =====");
+
   try {
-    const places = await Place.find();
+    console.log("Cookies:", req.cookies);
+
+    const token = req.cookies?.token;
+
+    if (!token) {
+      console.log("No token");
+      return res.status(401).json({ error: "Unauthorized" });
+    }
+
+    console.log("Token exists");
+
+    const decoded = jwt.verify(token, jwtSecret);
+    console.log("Decoded token:", decoded);
+
+    const places = await Place.find({ owner: decoded.id });
+
+    console.log("Places found:", places.length);
+
     return res.json(places);
-  } catch (error) {
-    console.error("Fetch places error:", error);
-    return res.status(500).json({ error: "Failed to fetch places." });
+  } catch (err) {
+    console.error("GET /places ERROR:");
+    console.error(err);
+
+    return res.status(500).json({
+      error: err.message,
+      stack: err.stack,
+    });
   }
 });
 
@@ -315,6 +351,43 @@ app.put("/places/:id", async (req, res) => {
   }
 });
 
+app.delete("/places/:id", async (req, res) => {
+  let decoded;
+
+  try {
+    decoded = getDecodedToken(req);
+  } catch (error) {
+    return res.status(401).json({ error: "Unauthorized" });
+  }
+
+  if (!decoded) {
+    return res.status(401).json({ error: "Unauthorized" });
+  }
+
+  try {
+    const deletedPlace = await Place.findOneAndDelete({
+      _id: req.params.id,
+      owner: decoded.id,
+    });
+
+    if (!deletedPlace) {
+      return res.status(404).json({
+        error: "Place not found.",
+      });
+    }
+
+    return res.json({
+      success: true,
+    });
+  } catch (error) {
+    console.error(error);
+
+    return res.status(500).json({
+      error: "Failed to delete place.",
+    });
+  }
+});
+
 app.post("/login", async (req, res) => {
   try {
     const { email, password } = req.body || {};
@@ -371,8 +444,25 @@ function authMiddleware(req, res, next) {
   }
 }
 
-app.get("/profile", authMiddleware, (req, res) => {
-  res.json({ user: req.user });
+app.get("/profile", authMiddleware, async (req, res) => {
+  try {
+    const user = await UserModel.findById(req.user.id).select("-password");
+
+    if (!user) {
+      return res.status(404).json({ error: "User not found." });
+    }
+
+    return res.json({
+      user: {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+      },
+    });
+  } catch (error) {
+    console.error("Profile fetch error:", error);
+    return res.status(500).json({ error: "Internal server error." });
+  }
 });
 
 app.post("/logout", (req, res) => {
@@ -391,6 +481,7 @@ app.use((err, req, res, next) => {
   res.status(500).json({ error: "Internal server error" });
 });
 
+console.log("Registered /places endpoint");
 app.listen(port, () => {
   console.log(`Example app listening on port ${port}`);
 });

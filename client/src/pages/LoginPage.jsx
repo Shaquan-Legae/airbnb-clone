@@ -5,7 +5,7 @@ import { UserContext } from "../context/UserContext";
 
 export default function LoginPage() {
     const navigate = useNavigate();
-    const { setUser } = useContext(UserContext);
+    const { setUser, refreshUser } = useContext(UserContext);
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [message, setMessage] = useState('');
@@ -40,6 +40,7 @@ export default function LoginPage() {
             console.log('Login response:', response.data);
             if (response.data.user) {
                 setUser(response.data.user);
+                await refreshUser();
             }
             setMessage(response.data.message || 'Login successful');
             const isSuccessfulResponse = response.status >= 200 && response.status < 300;

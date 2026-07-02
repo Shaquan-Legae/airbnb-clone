@@ -80,7 +80,7 @@ export default function Header() {
                 </div>
 
                 <span className="text-sm font-medium">
-                    {user ? (user.name || user.email) : ''}
+                    {user ? user.name || user.email || '' : ''}
                 </span>
             </Link>
         </header>
