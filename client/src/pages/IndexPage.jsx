@@ -1,6 +1,11 @@
 import { useEffect, useState } from "react";
 import axios from "axios";
 import { Link } from "react-router-dom";
+import Footer from "../components/Footer";
+import ExperiencesSection from "../components/home/ExperienceSections";
+import HeroSection from "../components/home/HeroSection";
+import InspirationCards from "../components/home/InspirationCards";
+import ShopAirbnb from "../components/home/ShopAirbnb";
 
 function getPhotoUrl(photo) {
     if (!photo) {
@@ -22,7 +27,7 @@ function formatPrice(price) {
             style: "currency",
             currency: "ZAR",
             maximumFractionDigits: 0,
-        }).format(price) + " / night"
+        }).format(price) + " per night"
     );
 }
 
@@ -46,26 +51,30 @@ export default function IndexPage() {
     }, []);
 
     return (
+
         <div className="max-w-7xl mx-auto px-4 py-8">
-            <h1 className="text-3xl font-semibold text-gray-900">
-                Places to stay
-            </h1>
+            <HeroSection />
+            <div className="text-center">
+                <h1 className="text-3xl font-semibold text-gray-900">
+                    Places to stay
+                </h1>
 
-            <p className="mt-2 text-gray-500">
-                Browse the latest accommodations shared by hosts.
-            </p>
+                <p className="mt-2 text-gray-500">
+                    Browse the latest accommodations shared by hosts.
+                </p>
 
-            {isLoading && (
-                <div className="py-20 text-center text-gray-500">
-                    Loading places...
-                </div>
-            )}
+                {isLoading && (
+                    <div className="py-20 text-center text-gray-500">
+                        Loading places...
+                    </div>
+                )}
 
-            {!isLoading && places.length === 0 && (
-                <div className="py-20 text-center text-gray-500">
-                    No places available yet.
-                </div>
-            )}
+                {!isLoading && places.length === 0 && (
+                    <div className="py-20 text-center text-gray-500">
+                        No places available yet.
+                    </div>
+                )}
+            </div>
 
             {!isLoading && places.length > 0 && (
                 <div className="mt-10 grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
@@ -115,6 +124,10 @@ export default function IndexPage() {
                     ))}
                 </div>
             )}
+            <InspirationCards />
+            <ExperiencesSection />
+            <ShopAirbnb />
+            <Footer />
         </div>
     );
 }
