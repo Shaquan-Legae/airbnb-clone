@@ -6,25 +6,30 @@ export default function UserContextProvider({ children }) {
     const [user, setUser] = useState(null);
     const [loading, setLoading] = useState(true);
 
+    async function fetchProfile() {
+        try {
+            const { data } = await axios.get('/profile', { withCredentials: true });
+            setUser(data?.user || null);
+        } catch (err) {
+            console.error('Failed to fetch profile:', err);
+            setUser(null);
+        } finally {
+            setLoading(false);
+        }
+    }
+
     useEffect(() => {
         let isMounted = true;
 
-        axios.get('/profile', { withCredentials: true })
-            .then((response) => {
-                if (isMounted) {
-                    setUser(response.data.user);
-                }
-            })
-            .catch(() => {
-                if (isMounted) {
-                    setUser(null);
-                }
-            })
-            .finally(() => {
-                if (isMounted) {
-                    setLoading(false);
-                }
-            });
+        const loadProfile = async () => {
+            if (!isMounted) {
+                return;
+            }
+
+            await fetchProfile();
+        };
+
+        loadProfile();
 
         return () => {
             isMounted = false;
@@ -32,7 +37,7 @@ export default function UserContextProvider({ children }) {
     }, []);
 
     return (
-        <UserContext.Provider value={{ user, setUser, loading }}>
+        <UserContext.Provider value={{ user, setUser, loading, refreshUser: fetchProfile }}>
             {children}
         </UserContext.Provider>
     );
