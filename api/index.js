@@ -152,7 +152,7 @@ app.post("/register", async (req, res) => {
   try {
     console.log("BODY:", req.body);
 
-    const { name, email, password } = req.body || {};
+    const { name, email, password, role } = req.body || {};
     console.log("Register request received:", { name, email });
 
     if (!name || !email || !password) {
@@ -172,10 +172,11 @@ app.post("/register", async (req, res) => {
       name,
       email,
       password: hashedPassword,
+      role: role && ["host", "guest"].includes(role) ? role : "guest",
     });
 
     const token = jwt.sign(
-      { id: newUser._id, email: newUser.email },
+      { id: newUser._id, email: newUser.email, role: newUser.role },
       jwtSecret,
       { expiresIn: "7d" },
     );
@@ -192,6 +193,7 @@ app.post("/register", async (req, res) => {
         id: newUser._id,
         name: newUser.name,
         email: newUser.email,
+        role: newUser.role,
       },
     });
   } catch (error) {
@@ -201,6 +203,57 @@ app.post("/register", async (req, res) => {
 });
 
 console.log("About to register GET /places");
+
+app.get("/listings", async (req, res) => {
+  try {
+    const { location, guests } = req.query;
+    const filters = {};
+
+    if (location) {
+      const locationRegex = new RegExp(String(location).trim(), "i");
+      filters.$or = [
+        { address: locationRegex },
+        { title: locationRegex },
+        { description: locationRegex },
+      ];
+    }
+
+    if (guests && !Number.isNaN(Number(guests))) {
+      filters.maxGuests = { $gte: Number(guests) };
+    }
+
+    const places = await Place.find(filters)
+      .populate("owner", "name email")
+      .sort({ createdAt: -1, _id: -1 });
+
+    return res.json(places);
+  } catch (error) {
+    console.error("Fetch public listings error:", error);
+    return res.status(500).json({ error: "Failed to fetch listings." });
+  }
+});
+
+app.get("/listings/:id", async (req, res) => {
+  try {
+    if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+      return res.status(400).json({ error: "Invalid listing id." });
+    }
+
+    const placeDoc = await Place.findById(req.params.id).populate(
+      "owner",
+      "name email",
+    );
+
+    if (!placeDoc) {
+      return res.status(404).json({ error: "Listing not found." });
+    }
+
+    return res.json(placeDoc);
+  } catch (error) {
+    console.error("Fetch public listing error:", error);
+    return res.status(500).json({ error: "Failed to fetch listing." });
+  }
+});
 
 app.post("/places", async (req, res) => {
   let decoded;
@@ -409,7 +462,8 @@ app.post("/login", async (req, res) => {
       return res.status(401).json({ error: "Invalid email or password" });
     }
 
-    const token = jwt.sign({ id: user._id, email: user.email }, jwtSecret, {
+    const userRole = user.role ?? "guest";
+    const token = jwt.sign({ id: user._id, email: user.email, role: userRole }, jwtSecret, {
       expiresIn: "7d",
     });
 
@@ -421,7 +475,7 @@ app.post("/login", async (req, res) => {
 
     return res.status(200).json({
       message: "Login successful",
-      user: { id: user._id, name: user.name, email: user.email },
+      user: { id: user._id, name: user.name, email: user.email, role: userRole },
     });
   } catch (error) {
     console.error("Login error:", error);
@@ -452,11 +506,13 @@ app.get("/profile", authMiddleware, async (req, res) => {
       return res.status(404).json({ error: "User not found." });
     }
 
+    const userRole = user.role ?? "guest";
     return res.json({
       user: {
         id: user._id,
         name: user.name,
         email: user.email,
+        role: userRole,
       },
     });
   } catch (error) {
