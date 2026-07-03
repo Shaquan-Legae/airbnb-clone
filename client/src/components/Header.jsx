@@ -1,6 +1,8 @@
-import { useContext, useState } from "react";
+import { useContext, useEffect, useRef, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
+import axios from "axios";
 import { UserContext } from "../context/UserContext";
+import { getPhotoUrl } from "../utils/place";
 
 function HeaderSearch({ search }) {
     const navigate = useNavigate();
@@ -79,8 +81,37 @@ function HeaderSearch({ search }) {
 }
 
 export default function Header() {
-    const { user } = useContext(UserContext);
+    const { user, setUser } = useContext(UserContext);
     const location = useLocation();
+    const navigate = useNavigate();
+    const menuRef = useRef(null);
+    const [isMenuOpen, setIsMenuOpen] = useState(false);
+    const isGuest = user?.role === "guest";
+    const isHost = user?.role === "host";
+    const profilePhotoUrl = getPhotoUrl(user?.profilePhoto);
+    const profileLabel = user?.name || user?.email || "Profile";
+
+    useEffect(() => {
+        function handleClickOutside(ev) {
+            if (menuRef.current && !menuRef.current.contains(ev.target)) {
+                setIsMenuOpen(false);
+            }
+        }
+
+        document.addEventListener("mousedown", handleClickOutside);
+        return () => document.removeEventListener("mousedown", handleClickOutside);
+    }, []);
+
+    async function logout() {
+        await axios.post("/logout");
+        setUser(null);
+        setIsMenuOpen(false);
+        navigate("/login");
+    }
+
+    function goToProfileFlow() {
+        navigate(user ? "/account/profile" : "/login");
+    }
 
     return (
         <header className="flex flex-col gap-4 border-b border-gray-200 pb-4 sm:flex-row sm:items-center sm:justify-between">
@@ -93,13 +124,88 @@ export default function Header() {
 
             <HeaderSearch key={location.search} search={location.search} />
 
-            <Link to={user ? "/account/profile" : "/login"} className="menu flex items-center gap-3 self-start rounded-full border border-gray-200 bg-white px-3 py-2 shadow-sm sm:self-auto">
-                <span className="hidden text-sm font-medium md:inline">Become a host</span>
-                <span className="hidden rounded-full bg-gray-100 p-2 md:inline-flex">
+            <div className="relative flex items-center gap-2 self-start sm:self-auto" ref={menuRef}>
+                {(!user || isGuest) && (
+                    <Link
+                        to={user ? "/account/become-host" : "/login"}
+                        className="hidden rounded-full px-3 py-2 text-sm font-semibold hover:bg-gray-100 md:inline-flex"
+                    >
+                        Become a Host
+                    </Link>
+                )}
+
+                <button
+                    type="button"
+                    aria-label="Language and profile"
+                    onClick={goToProfileFlow}
+                    className="hidden rounded-full p-2 text-gray-800 hover:bg-gray-100 md:inline-flex"
+                >
                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor" className="size-5"><path strokeLinecap="round" strokeLinejoin="round" d="M12 21a9 9 0 1 0 0-18m0 18a9 9 0 1 1 0-18m0 18c2.5-2.467 3.75-5.467 3.75-9S14.5 5.467 12 3m0 18c-2.5-2.467-3.75-5.467-3.75-9S9.5 5.467 12 3m-7.5 9h15" /></svg>
-                </span>
-                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor" className="size-6"><path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" /></svg>
-            </Link>
+                </button>
+
+                <button
+                    type="button"
+                    aria-label="Open profile menu"
+                    onClick={() => setIsMenuOpen((prev) => !prev)}
+                    className="menu flex items-center gap-3 rounded-full border border-gray-200 bg-white px-3 py-2 shadow-sm transition hover:shadow-md"
+                >
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor" className="size-6"><path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" /></svg>
+                    {profilePhotoUrl ? (
+                        <img src={profilePhotoUrl} alt={profileLabel} className="size-8 rounded-full object-cover" />
+                    ) : (
+                        <span className="flex size-8 items-center justify-center rounded-full bg-gray-900 text-sm font-semibold text-white">
+                            {profileLabel.charAt(0).toUpperCase()}
+                        </span>
+                    )}
+                </button>
+
+                {isMenuOpen && (
+                    <div className="absolute right-0 top-12 z-40 w-64 overflow-hidden rounded-2xl border border-gray-200 bg-white py-2 text-sm shadow-xl">
+                        {!user && (
+                            <>
+                                <Link onClick={() => setIsMenuOpen(false)} to="/login" className="block px-4 py-3 font-semibold hover:bg-gray-50">
+                                    Login
+                                </Link>
+                                <Link onClick={() => setIsMenuOpen(false)} to="/register" className="block px-4 py-3 hover:bg-gray-50">
+                                    Sign up
+                                </Link>
+                                <Link onClick={() => setIsMenuOpen(false)} to="/login" className="block border-t border-gray-100 px-4 py-3 hover:bg-gray-50">
+                                    Become a Host
+                                </Link>
+                            </>
+                        )}
+
+                        {user && (
+                            <>
+                                <Link onClick={() => setIsMenuOpen(false)} to="/account/profile" className="block px-4 py-3 font-semibold hover:bg-gray-50">
+                                    My Profile
+                                </Link>
+                                <Link onClick={() => setIsMenuOpen(false)} to="/account/bookings" className="block px-4 py-3 hover:bg-gray-50">
+                                    My Bookings
+                                </Link>
+                                {isGuest && (
+                                    <Link onClick={() => setIsMenuOpen(false)} to="/account/become-host" className="block px-4 py-3 hover:bg-gray-50">
+                                        Become a Host
+                                    </Link>
+                                )}
+                                {isHost && (
+                                    <>
+                                        <Link onClick={() => setIsMenuOpen(false)} to="/account/places" className="block px-4 py-3 hover:bg-gray-50">
+                                            My Accommodations
+                                        </Link>
+                                        <Link onClick={() => setIsMenuOpen(false)} to="/account/property-bookings" className="block px-4 py-3 hover:bg-gray-50">
+                                            Property Bookings
+                                        </Link>
+                                    </>
+                                )}
+                                <button type="button" onClick={logout} className="block w-full border-t border-gray-100 px-4 py-3 text-left hover:bg-gray-50">
+                                    Logout
+                                </button>
+                            </>
+                        )}
+                    </div>
+                )}
+            </div>
         </header>
     );
 }

@@ -1,7 +1,13 @@
-import { useEffect, useMemo, useState } from "react";
-import { Link, useParams } from "react-router-dom";
+import { useContext, useEffect, useMemo, useState } from "react";
+import { Link, useNavigate, useParams } from "react-router-dom";
 import axios from "axios";
 import { formatCurrency, getPhotoUrl } from "../utils/place";
+import {
+    calculateReservationPricing,
+    formatDateRange,
+    pricingRows,
+} from "../utils/reservation";
+import { UserContext } from "../context/UserContext";
 
 const amenityLabels = {
     wifi: "Wifi",
@@ -59,6 +65,10 @@ function getHostName(place) {
     return place.owner?.name || place.owner?.email || "Host";
 }
 
+function getUserPhoto(user) {
+    return getPhotoUrl(user?.profilePhoto);
+}
+
 function getInitial(name) {
     return String(name || "H").trim().charAt(0).toUpperCase();
 }
@@ -96,44 +106,113 @@ function IconText({ label }) {
     );
 }
 
-function CalendarPreview() {
-    const days = Array.from({ length: 35 }, (_, index) => index + 1);
+function CalendarPreview({ unavailableRanges = [] }) {
+    const visibleUnavailable = unavailableRanges.slice(0, 3);
 
     return (
-        <div className="grid gap-10 md:grid-cols-2">
-            {["August 2026", "September 2026"].map((month, monthIndex) => (
-                <div key={month}>
-                    <div className="mb-4 text-center text-sm font-semibold">
-                        {month}
-                    </div>
-                    <div className="grid grid-cols-7 gap-3 text-center text-xs text-gray-500">
-                        {["S", "M", "T", "W", "T", "F", "S"].map((day, dayIndex) => (
-                            <span key={`${month}-${day}-${dayIndex}`}>{day}</span>
-                        ))}
-                        {days.map((day) => {
-                            const selected = (monthIndex === 0 && day === 22) || (monthIndex === 0 && day === 31);
-
-                            return (
-                                <span
-                                    key={`${month}-${day}`}
-                                    className={`flex size-7 items-center justify-center rounded-full ${selected ? "bg-gray-950 text-white" : "text-gray-700"}`}
-                                >
-                                    {day}
-                                </span>
-                            );
-                        })}
-                    </div>
-                </div>
-            ))}
+        <div className="rounded-2xl border border-gray-200 bg-white p-4">
+            <h3 className="text-sm font-semibold">Unavailable dates</h3>
+            {visibleUnavailable.length === 0 ? (
+                <p className="mt-2 text-sm text-gray-500">No unavailable dates yet.</p>
+            ) : (
+                <ul className="mt-3 space-y-2 text-sm text-gray-700">
+                    {visibleUnavailable.map((reservation) => (
+                        <li key={reservation._id} className="rounded-lg bg-gray-50 px-3 py-2">
+                            {formatDateRange(reservation.checkIn, reservation.checkOut)}
+                        </li>
+                    ))}
+                </ul>
+            )}
         </div>
     );
 }
 
-function BookingCard({ place }) {
+function datesOverlapUnavailable(checkIn, checkOut, unavailableRanges) {
+    if (!checkIn || !checkOut) return false;
+
+    const nextCheckIn = new Date(checkIn);
+    const nextCheckOut = new Date(checkOut);
+
+    return unavailableRanges.some((reservation) => (
+        nextCheckIn < new Date(reservation.checkOut) &&
+        nextCheckOut > new Date(reservation.checkIn)
+    ));
+}
+
+function BookingCard({ place, unavailableRanges, onReservationCreated }) {
+    const navigate = useNavigate();
+    const { user } = useContext(UserContext);
     const [checkIn, setCheckIn] = useState("");
     const [checkOut, setCheckOut] = useState("");
     const [guests, setGuests] = useState("1");
-    const total = Number(place.price || 0) * 2;
+    const [errors, setErrors] = useState({});
+    const [formError, setFormError] = useState("");
+    const [isSubmitting, setIsSubmitting] = useState(false);
+    const pricing = calculateReservationPricing(place.price, checkIn, checkOut);
+    const today = new Date().toISOString().split("T")[0];
+
+    function validateBooking() {
+        const nextErrors = {};
+
+        if (!checkIn) nextErrors.checkIn = "Choose a check-in date.";
+        if (!checkOut) nextErrors.checkOut = "Choose a check-out date.";
+        if (checkIn && checkOut && new Date(checkOut) <= new Date(checkIn)) {
+            nextErrors.checkOut = "Check-out must be after check-in.";
+        }
+        if (checkIn && checkIn < today) {
+            nextErrors.checkIn = "Check-in cannot be in the past.";
+        }
+        if (datesOverlapUnavailable(checkIn, checkOut, unavailableRanges)) {
+            nextErrors.checkIn = "These dates overlap an existing reservation.";
+        }
+        if (!guests || Number(guests) < 1) {
+            nextErrors.guests = "Choose at least 1 guest.";
+        }
+
+        return nextErrors;
+    }
+
+    async function reservePlace() {
+        if (!user) {
+            navigate("/login");
+            return;
+        }
+
+        const nextErrors = validateBooking();
+        setErrors(nextErrors);
+        setFormError("");
+
+        if (Object.keys(nextErrors).length > 0) {
+            return;
+        }
+
+        setIsSubmitting(true);
+
+        try {
+            await axios.post("/reservations", {
+                placeId: place._id,
+                checkIn,
+                checkOut,
+                guests: Number(guests),
+            });
+
+            await onReservationCreated();
+            navigate("/account/bookings", {
+                state: { message: "Reservation created and added to My Bookings." },
+            });
+        } catch (error) {
+            if (error.response?.data?.errors) {
+                setErrors(error.response.data.errors);
+            }
+
+            setFormError(
+                error.response?.data?.error ||
+                "Could not reserve this place. Please try again.",
+            );
+        } finally {
+            setIsSubmitting(false);
+        }
+    }
 
     return (
         <aside className="rounded-2xl border border-gray-200 bg-white p-5 shadow-xl shadow-gray-200/70">
@@ -141,7 +220,7 @@ function BookingCard({ place }) {
                 <span className="text-xl font-semibold">
                     {formatCurrency(place.price)}
                 </span>
-                <span className="text-sm text-gray-600"> for 2 nights</span>
+                <span className="text-sm text-gray-600"> per night</span>
             </div>
 
             <div className="overflow-hidden rounded-xl border border-gray-300">
@@ -152,6 +231,7 @@ function BookingCard({ place }) {
                             type="date"
                             value={checkIn}
                             onChange={(ev) => setCheckIn(ev.target.value)}
+                            min={today}
                             className="mt-1 block w-full border-0 p-0 text-xs font-normal outline-none"
                         />
                     </label>
@@ -161,6 +241,7 @@ function BookingCard({ place }) {
                             type="date"
                             value={checkOut}
                             onChange={(ev) => setCheckOut(ev.target.value)}
+                            min={checkIn || today}
                             className="mt-1 block w-full border-0 p-0 text-xs font-normal outline-none"
                         />
                     </label>
@@ -181,11 +262,21 @@ function BookingCard({ place }) {
                 </label>
             </div>
 
+            {(errors.checkIn || errors.checkOut || errors.guests) && (
+                <div className="mt-3 space-y-1 text-sm text-red-600">
+                    {errors.checkIn && <p>{errors.checkIn}</p>}
+                    {errors.checkOut && <p>{errors.checkOut}</p>}
+                    {errors.guests && <p>{errors.guests}</p>}
+                </div>
+            )}
+
             <button
                 type="button"
+                onClick={reservePlace}
+                disabled={isSubmitting}
                 className="mt-4 w-full rounded-lg bg-primary py-3 font-semibold text-white transition hover:bg-rose-700"
             >
-                Reserve
+                {isSubmitting ? "Reserving..." : "Reserve"}
             </button>
 
             <p className="mt-3 text-center text-sm text-gray-500">
@@ -193,19 +284,23 @@ function BookingCard({ place }) {
             </p>
 
             <div className="mt-5 space-y-3 text-sm">
-                <div className="flex justify-between">
-                    <span className="underline">{formatCurrency(place.price)} x 2 nights</span>
-                    <span>{formatCurrency(total)}</span>
-                </div>
-                <div className="flex justify-between">
-                    <span className="underline">Airbnb service fee</span>
-                    <span>{formatCurrency(Math.round(total * 0.14))}</span>
-                </div>
+                {pricingRows(pricing).map((row) => (
+                    <div key={row.label} className="flex justify-between gap-4">
+                        <span className="underline">{row.label}</span>
+                        <span>{row.value}</span>
+                    </div>
+                ))}
                 <div className="flex justify-between border-t border-gray-200 pt-4 font-semibold">
                     <span>Total</span>
-                    <span>{formatCurrency(total + Math.round(total * 0.14))}</span>
+                    <span>{formatCurrency(pricing.total)}</span>
                 </div>
             </div>
+
+            {formError && (
+                <div className="mt-4 rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+                    {formError}
+                </div>
+            )}
         </aside>
     );
 }
@@ -214,8 +309,14 @@ export default function SinglePlacePage() {
     const { id } = useParams();
     const [place, setPlace] = useState(null);
     const [nearbyPlaces, setNearbyPlaces] = useState([]);
+    const [unavailableRanges, setUnavailableRanges] = useState([]);
     const [status, setStatus] = useState("loading");
     const [showAllPhotos, setShowAllPhotos] = useState(false);
+
+    async function loadUnavailableRanges() {
+        const { data } = await axios.get(`/reservations/unavailable/${id}`);
+        setUnavailableRanges(Array.isArray(data) ? data : []);
+    }
 
     useEffect(() => {
         let isMounted = true;
@@ -224,14 +325,16 @@ export default function SinglePlacePage() {
             setStatus("loading");
 
             try {
-                const [{ data: placeData }, { data: listingsData }] = await Promise.all([
+                const [{ data: placeData }, { data: listingsData }, { data: unavailableData }] = await Promise.all([
                     axios.get(`/listings/${id}`),
                     axios.get("/listings"),
+                    axios.get(`/reservations/unavailable/${id}`),
                 ]);
 
                 if (!isMounted) return;
 
                 setPlace(placeData);
+                setUnavailableRanges(Array.isArray(unavailableData) ? unavailableData : []);
                 setNearbyPlaces(
                     Array.isArray(listingsData)
                         ? listingsData.filter((listing) => listing._id !== id).slice(0, 6)
@@ -378,12 +481,22 @@ export default function SinglePlacePage() {
                     </section>
 
                     <section className="flex items-center gap-4 border-b border-gray-200 py-6">
-                        <div className="flex size-12 items-center justify-center rounded-full bg-gradient-to-br from-rose-500 to-purple-700 text-lg font-semibold text-white">
-                            {getInitial(hostName)}
-                        </div>
+                        {getUserPhoto(place.owner) ? (
+                            <img
+                                src={getUserPhoto(place.owner)}
+                                alt={hostName}
+                                className="size-12 rounded-full object-cover"
+                            />
+                        ) : (
+                            <div className="flex size-12 items-center justify-center rounded-full bg-gradient-to-br from-rose-500 to-purple-700 text-lg font-semibold text-white">
+                                {getInitial(hostName)}
+                            </div>
+                        )}
                         <div>
                             <h2 className="font-semibold">Hosted by {hostName}</h2>
-                            <p className="text-sm text-gray-500">1 year hosting</p>
+                            <p className="text-sm text-gray-500">
+                                {place.owner?.hostProfile?.experience ?? 1} year{Number(place.owner?.hostProfile?.experience) === 1 ? "" : "s"} hosting
+                            </p>
                         </div>
                     </section>
 
@@ -425,7 +538,7 @@ export default function SinglePlacePage() {
                             Aug 21, 2026 - Aug 23, 2026
                         </p>
                         <div className="mt-8">
-                            <CalendarPreview />
+                            <CalendarPreview unavailableRanges={unavailableRanges} />
                         </div>
                     </section>
 
@@ -469,9 +582,17 @@ export default function SinglePlacePage() {
                         <h2 className="text-xl font-semibold">Meet your host</h2>
                         <div className="mt-5 grid gap-8 sm:grid-cols-[280px_1fr]">
                             <div className="rounded-2xl border border-gray-100 bg-white p-6 text-center shadow-lg shadow-gray-200/70">
-                                <div className="mx-auto flex size-20 items-center justify-center rounded-full bg-gradient-to-br from-rose-500 to-purple-700 text-3xl font-semibold text-white">
-                                    {getInitial(hostName)}
-                                </div>
+                                {getUserPhoto(place.owner) ? (
+                                    <img
+                                        src={getUserPhoto(place.owner)}
+                                        alt={hostName}
+                                        className="mx-auto size-20 rounded-full object-cover"
+                                    />
+                                ) : (
+                                    <div className="mx-auto flex size-20 items-center justify-center rounded-full bg-gradient-to-br from-rose-500 to-purple-700 text-3xl font-semibold text-white">
+                                        {getInitial(hostName)}
+                                    </div>
+                                )}
                                 <h3 className="mt-3 text-2xl font-semibold">{hostName}</h3>
                                 <p className="text-sm text-gray-500">Host</p>
                             </div>
@@ -499,7 +620,11 @@ export default function SinglePlacePage() {
                         </span>
                         Prices include all fees
                     </div>
-                    <BookingCard place={place} />
+                    <BookingCard
+                        place={place}
+                        unavailableRanges={unavailableRanges}
+                        onReservationCreated={loadUnavailableRanges}
+                    />
                     <button type="button" className="mx-auto mt-5 block text-sm text-gray-600 underline">
                         Report this listing
                     </button>
