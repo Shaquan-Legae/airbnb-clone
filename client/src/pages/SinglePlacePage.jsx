@@ -319,6 +319,9 @@ export default function SinglePlacePage() {
     }
 
     useEffect(() => {
+        document.title = place
+            ? `${place.title} • Airbnb`
+            : "Stay • Airbnb";
         let isMounted = true;
 
         async function loadPlace() {
@@ -355,7 +358,7 @@ export default function SinglePlacePage() {
         return () => {
             isMounted = false;
         };
-    }, [id]);
+    }, [id, place]);
 
     const photos = useMemo(() => place?.photos || [], [place]);
     const amenities = useMemo(() => getAmenities(place?.perks), [place]);

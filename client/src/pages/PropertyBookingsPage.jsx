@@ -145,6 +145,7 @@ export default function PropertyBookingsPage() {
     }
 
     useEffect(() => {
+        document.title = "Reservations • Airbnb";
         const timeoutId = window.setTimeout(() => {
             loadReservations();
         }, 0);

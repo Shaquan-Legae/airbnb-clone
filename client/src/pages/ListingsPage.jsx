@@ -109,6 +109,7 @@ export default function ListingsPage() {
     const date = searchParams.get("date") || "";
 
     useEffect(() => {
+        document.title = "Places to stay • Airbnb";
         let isMounted = true;
 
         async function loadListings() {
