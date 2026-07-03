@@ -73,6 +73,7 @@ export default function PlacesPage() {
     }
 
     useEffect(() => {
+        document.title = "My Accommodations • Airbnb";
         let isMounted = true;
 
         const timeoutId = window.setTimeout(() => {

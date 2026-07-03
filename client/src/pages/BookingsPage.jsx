@@ -220,6 +220,7 @@ export default function BookingsPage() {
     }
 
     useEffect(() => {
+        document.title = "Trips • Airbnb";
         const timeoutId = window.setTimeout(() => {
             loadReservations();
         }, 0);

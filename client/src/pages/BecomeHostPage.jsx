@@ -1,4 +1,4 @@
-import { useContext, useState } from "react";
+import { useContext, useState, useEffect } from "react";
 import { Navigate, useNavigate } from "react-router-dom";
 import axios from "axios";
 import { UserContext } from "../context/UserContext";
@@ -50,6 +50,11 @@ function FieldError({ message }) {
 }
 
 export default function BecomeHostPage() {
+
+    useEffect(() => {
+        document.title = "Become a Host • Airbnb";
+    }, []);
+
     const { user, loading, setUser, refreshUser } = useContext(UserContext);
     const navigate = useNavigate();
     const [formData, setFormData] = useState({

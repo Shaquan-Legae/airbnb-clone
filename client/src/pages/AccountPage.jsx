@@ -109,6 +109,7 @@ function ProfilePanel({ user, setUser, refreshUser, onLogout }) {
     }
 
     return (
+
         <div className="mx-auto mt-8 max-w-4xl px-4">
             <div className="mb-8">
                 <h1 className="text-3xl font-semibold">Personal Information</h1>

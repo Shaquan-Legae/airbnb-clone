@@ -13,6 +13,7 @@ export default function IndexPage() {
     const [isLoading, setIsLoading] = useState(true);
 
     useEffect(() => {
+        document.title = "Airbnb";
         async function loadPlaces() {
             try {
                 const { data } = await axios.get("/listings");
