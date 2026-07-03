@@ -4,7 +4,7 @@ export function getPhotoUrl(photo) {
     }
 
     const filename = String(photo).split(/[\\/]/).pop();
-    return `http://localhost:4000/uploads/${filename}`;
+    return `https://airbnb-clone-backend-r26p.onrender.com/uploads/${filename}`;
 }
 
 export function formatCurrency(price) {
