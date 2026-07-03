@@ -14,7 +14,7 @@ const Place = require("./models/places");
 const Reservation = require("./models/reservations");
 
 const app = express();
-const port = 4000;
+const port = process.env.PORT || 4000;
 const jwtSecret = process.env.JWT_SECRET || "dev-secret";
 
 const uploadsDir = path.join(__dirname, "uploads");
