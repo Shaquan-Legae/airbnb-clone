@@ -207,7 +207,7 @@ export default function PhotosUploader({ photos, setPhotos }) {
                             className="group relative aspect-square overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm transition duration-300 ease-out animate-[fadeIn_250ms_ease-out] hover:-translate-y-0.5 hover:shadow-md"
                         >
                             <img
-                                src={`http://localhost:4000/uploads/${getFilename(photo)}`}
+                                src={`https://airbnb-clone-backend-r26p.onrender.com/uploads/${getFilename(photo)}`}
                                 alt=""
                                 className="h-full w-full object-cover transition duration-300 ease-out group-hover:scale-105"
                             />
