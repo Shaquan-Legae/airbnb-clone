@@ -56,7 +56,7 @@ export default function IndexPage() {
 
             {!isLoading && places.length > 0 && (
                 <div className="mt-10 grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-                    {places.map((place) => (
+                    {places.slice(0, 4).map((place) => (
                         <Link
                             key={place._id}
                             to={`/singleplace/${place._id}`}
