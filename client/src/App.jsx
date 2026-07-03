@@ -15,7 +15,7 @@ import UserContextProvider from './context/UserContextProvider';
 import { UserContext } from './context/UserContext';
 
 
-axios.defaults.baseURL = 'http://localhost:4000';
+axios.defaults.baseURL = 'https://airbnb-clone-backend-r26p.onrender.com';
 axios.defaults.withCredentials = true;
 
 function AppRoutes() {
