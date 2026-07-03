@@ -430,7 +430,8 @@ app.post("/register", async (req, res) => {
 
     res.cookie("token", token, {
       httpOnly: true,
-      sameSite: "lax",
+      secure: true,
+      sameSite: "none",
       maxAge: 7 * 24 * 60 * 60 * 1000,
     });
 
@@ -898,7 +899,8 @@ app.post("/login", async (req, res) => {
 
     res.cookie("token", token, {
       httpOnly: true,
-      sameSite: "lax",
+      secure: true,
+      sameSite: "none",
       maxAge: 7 * 24 * 60 * 60 * 1000,
     });
 
@@ -977,7 +979,8 @@ app.put("/profile", authMiddleware, async (req, res) => {
 
     res.cookie("token", token, {
       httpOnly: true,
-      sameSite: "lax",
+      secure: true,
+      sameSite: "none",
       maxAge: 7 * 24 * 60 * 60 * 1000,
     });
 
@@ -1035,7 +1038,8 @@ app.post("/become-host", authMiddleware, async (req, res) => {
 
     res.cookie("token", token, {
       httpOnly: true,
-      sameSite: "lax",
+      secure: true,
+      sameSite: "none",
       maxAge: 7 * 24 * 60 * 60 * 1000,
     });
 
@@ -1052,7 +1056,8 @@ app.post("/become-host", authMiddleware, async (req, res) => {
 app.post("/logout", (req, res) => {
   res.cookie("token", "", {
     httpOnly: true,
-    sameSite: "lax",
+    secure: true,
+    sameSite: "none",
     expires: new Date(0),
   });
 
