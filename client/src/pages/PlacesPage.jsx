@@ -33,6 +33,7 @@ export default function PlacesPage() {
 
     async function loadPlaces(showLoading = true) {
         if (showLoading) {
+            await Promise.resolve();
             setPlacesState("loading");
         }
 
@@ -72,64 +73,67 @@ export default function PlacesPage() {
     }
 
     useEffect(() => {
-        if (!action) {
-            loadPlaces();
-            return;
-        }
-
-        if (action === "new") {
-            setTitle("");
-            setAddress("");
-            setDescription("");
-            setPerks([]);
-            setExtraInfo("");
-            setCheckIn("");
-            setCheckOut("");
-            setMaxGuests(1);
-            setPrice("");
-            setAddedPhotos([]);
-            setFormError("");
-            return;
-        }
-
         let isMounted = true;
 
-        async function fetchPlace() {
-            setIsLoadingPlace(true);
-            setFormError("");
+        const timeoutId = window.setTimeout(() => {
+            if (!action) {
+                loadPlaces();
+                return;
+            }
 
-            try {
-                const { data } = await axios.get(`/places/${action}`);
+            if (action === "new") {
+                setTitle("");
+                setAddress("");
+                setDescription("");
+                setPerks([]);
+                setExtraInfo("");
+                setCheckIn("");
+                setCheckOut("");
+                setMaxGuests(1);
+                setPrice("");
+                setAddedPhotos([]);
+                setFormError("");
+                return;
+            }
 
-                if (!isMounted) return;
+            async function fetchPlace() {
+                setIsLoadingPlace(true);
+                setFormError("");
 
-                setTitle(data.title || "");
-                setAddress(data.address || "");
-                setAddedPhotos(data.photos || []);
-                setDescription(data.description || "");
-                setPerks(data.perks || []);
-                setExtraInfo(data.extraInfo || "");
-                setCheckIn(data.checkIn || "");
-                setCheckOut(data.checkOut || "");
-                setMaxGuests(data.maxGuests || 1);
-                setPrice(data.price ?? "");
-            } catch (err) {
-                console.error(err);
+                try {
+                    const { data } = await axios.get(`/places/${action}`);
 
-                if (isMounted) {
-                    setFormError("Could not load this place.");
-                }
-            } finally {
-                if (isMounted) {
-                    setIsLoadingPlace(false);
+                    if (!isMounted) return;
+
+                    setTitle(data.title || "");
+                    setAddress(data.address || "");
+                    setAddedPhotos(data.photos || []);
+                    setDescription(data.description || "");
+                    setPerks(data.perks || []);
+                    setExtraInfo(data.extraInfo || "");
+                    setCheckIn(data.checkIn || "");
+                    setCheckOut(data.checkOut || "");
+                    setMaxGuests(data.maxGuests || 1);
+                    setPrice(data.price ?? "");
+                } catch (err) {
+                    console.error(err);
+
+                    if (isMounted) {
+                        setFormError("Could not load this place.");
+                    }
+                } finally {
+                    if (isMounted) {
+                        setIsLoadingPlace(false);
+                    }
                 }
             }
-        }
 
-        fetchPlace();
+            fetchPlace();
+        }, 0);
 
         return () => {
             isMounted = false;
+            window.clearTimeout(timeoutId);
         };
     }, [action]);
 

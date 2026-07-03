@@ -1,25 +1,5 @@
 import { Link } from "react-router-dom";
-
-function getPhotoUrl(photo) {
-    if (!photo) {
-        return "";
-    }
-
-    const filename = String(photo).split(/[\\/]/).pop();
-    return `http://localhost:4000/uploads/${filename}`;
-}
-
-function formatPrice(price) {
-    if (price === undefined || price === null || price === "") {
-        return "R 0 per night";
-    }
-
-    return new Intl.NumberFormat("en-ZA", {
-        style: "currency",
-        currency: "ZAR",
-        maximumFractionDigits: 0,
-    }).format(price) + " per night";
-}
+import { formatNightlyPrice, getPhotoUrl } from "../../utils/place";
 
 export default function PlaceCard({
     place,
@@ -70,7 +50,7 @@ export default function PlaceCard({
                     </p>
 
                     <p className="mt-4 font-medium text-gray-900">
-                        {formatPrice(place.price)}
+                        {formatNightlyPrice(place.price)}
                     </p>
                 </div>
             </Link>

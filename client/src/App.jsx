@@ -8,9 +8,12 @@ import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
 import Layout from './layouts/Layout';
 import AccountPage from './pages/AccountPage';
+import ListingsPage from './pages/ListingsPage';
+import SinglePlacePage from './pages/SinglePlacePage';
 
 import UserContextProvider from './context/UserContextProvider';
 import { UserContext } from './context/UserContext';
+
 
 axios.defaults.baseURL = 'http://localhost:4000';
 axios.defaults.withCredentials = true;
@@ -42,6 +45,9 @@ function AppRoutes() {
         <Route path="/register" element={<RegisterPage />} />
         <Route path="account/:subpage?" element={<AccountPage />} />
         <Route path="account/:subpage/:action" element={<AccountPage />} />
+        <Route path="/listings" element={<ListingsPage />} />
+        <Route path="/singleplace/:id" element={<SinglePlacePage />} />
+        <Route path="/place/:id" element={<SinglePlacePage />} />
       </Route>
     </Routes>
   );

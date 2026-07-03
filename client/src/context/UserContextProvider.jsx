@@ -9,7 +9,11 @@ export default function UserContextProvider({ children }) {
     async function fetchProfile() {
         try {
             const { data } = await axios.get('/profile', { withCredentials: true });
-            setUser(data?.user || null);
+            const userData = data?.user || null;
+            if (userData) {
+                userData.role = userData.role ?? "guest";
+            }
+            setUser(userData);
         } catch (err) {
             console.error('Failed to fetch profile:', err);
             setUser(null);

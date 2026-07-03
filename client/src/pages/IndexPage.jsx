@@ -6,30 +6,7 @@ import ExperiencesSection from "../components/home/ExperienceSections";
 import HeroSection from "../components/home/HeroSection";
 import InspirationCards from "../components/home/InspirationCards";
 import ShopAirbnb from "../components/home/ShopAirbnb";
-
-function getPhotoUrl(photo) {
-    if (!photo) {
-        return "https://via.placeholder.com/600x600?text=No+Image";
-    }
-
-    return `http://localhost:4000/uploads/${String(photo)
-        .split(/[\\/]/)
-        .pop()}`;
-}
-
-function formatPrice(price) {
-    if (price === undefined || price === null || price === "") {
-        return "Price not available";
-    }
-
-    return (
-        new Intl.NumberFormat("en-ZA", {
-            style: "currency",
-            currency: "ZAR",
-            maximumFractionDigits: 0,
-        }).format(price) + " per night"
-    );
-}
+import { formatNightlyPrice, getPhotoUrl } from "../utils/place";
 
 export default function IndexPage() {
     const [places, setPlaces] = useState([]);
@@ -38,7 +15,7 @@ export default function IndexPage() {
     useEffect(() => {
         async function loadPlaces() {
             try {
-                const { data } = await axios.get("/places");
+                const { data } = await axios.get("/listings");
                 setPlaces(data);
             } catch (err) {
                 console.error("Failed to load places:", err);
@@ -81,7 +58,7 @@ export default function IndexPage() {
                     {places.map((place) => (
                         <Link
                             key={place._id}
-                            to={`/place/${place._id}`}
+                            to={`/singleplace/${place._id}`}
                             className="group"
                         >
                             <div className="overflow-hidden rounded-3xl bg-white shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-xl">
@@ -111,7 +88,7 @@ export default function IndexPage() {
 
                                     <div className="mt-4 flex items-center justify-between">
                                         <span className="font-semibold text-primary">
-                                            {formatPrice(place.price)}
+                                            {formatNightlyPrice(place.price)}
                                         </span>
 
                                         <span className="text-sm text-gray-500">
