@@ -7,30 +7,27 @@ function getRating(index) {
     return (4.82 + (index % 8) * 0.02).toFixed(index % 5 === 0 ? 1 : 2);
 }
 
-function getSectionTitle(index, location) {
-    if (location) {
-        return index === 0 ? `Available next month in ${location}` : `More stays near ${location}`;
-    }
-
-    if (index === 0) return "Available next month in Durban";
-    if (index === 1) return "Stay in Sandton";
-    return "More stays nearby";
+function getCity(address) {
+    if (!address) return "Unknown";
+    const parts = address.split(",").map((p) => p.trim());
+    return parts[2] || "Unknown";
 }
 
-function chunkPlaces(places) {
-    const chunks = [];
-
-    for (let index = 0; index < places.length; index += 6) {
-        chunks.push(places.slice(index, index + 6));
-    }
-
-    return chunks;
+function groupPlacesByCity(places) {
+    const groups = {};
+    places.forEach((place) => {
+        const city = getCity(place.address);
+        if (!groups[city]) {
+            groups[city] = [];
+        }
+        groups[city].push(place);
+    });
+    return groups;
 }
 
 function ListingCard({ place, index }) {
     const photoUrl = getPhotoUrl(place.photos?.[0]);
     const rating = getRating(index);
-
     return (
         <Link
             to={`/singleplace/${place._id}`}
@@ -48,20 +45,17 @@ function ListingCard({ place, index }) {
                         No photo available
                     </div>
                 )}
-
                 {index % 3 !== 0 && (
                     <span className="absolute left-3 top-3 rounded-full bg-white px-3 py-1 text-xs font-medium shadow">
                         Guest favorite
                     </span>
                 )}
-
                 <span className="absolute right-3 top-3 rounded-full text-white drop-shadow transition group-hover:scale-105">
                     <svg xmlns="http://www.w3.org/2000/svg" fill="rgba(0,0,0,0.28)" viewBox="0 0 24 24" strokeWidth="1.8" stroke="currentColor" className="size-7">
                         <path strokeLinecap="round" strokeLinejoin="round" d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.936 0-3.6 1.126-4.312 2.733-.712-1.607-2.376-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12Z" />
                     </svg>
                 </span>
             </div>
-
             <div className="mt-2">
                 <h3 className="truncate text-sm font-semibold text-gray-950">
                     {place.title}
@@ -103,18 +97,14 @@ export default function ListingsPage() {
     const [searchParams] = useSearchParams();
     const [places, setPlaces] = useState([]);
     const [status, setStatus] = useState("loading");
-
     const location = searchParams.get("location") || "";
     const guests = searchParams.get("guests") || "";
     const date = searchParams.get("date") || "";
-
     useEffect(() => {
         document.title = "Places to stay • Airbnb";
         let isMounted = true;
-
         async function loadListings() {
             setStatus("loading");
-
             try {
                 const { data } = await axios.get("/listings", {
                     params: {
@@ -123,31 +113,24 @@ export default function ListingsPage() {
                         date: date || undefined,
                     },
                 });
-
                 if (!isMounted) return;
-
                 const nextPlaces = Array.isArray(data) ? data : [];
                 setPlaces(nextPlaces);
                 setStatus(nextPlaces.length ? "success" : "empty");
             } catch (error) {
                 console.error("Failed to load listings:", error);
-
                 if (isMounted) {
                     setPlaces([]);
                     setStatus("failure");
                 }
             }
         }
-
         loadListings();
-
         return () => {
             isMounted = false;
         };
     }, [date, guests, location]);
-
-    const sections = useMemo(() => chunkPlaces(places), [places]);
-
+    const sections = useMemo(() => groupPlacesByCity(places), [places]);
     return (
         <main className="-mx-4 mt-0 sm:-mx-9">
             <div className="px-4 py-2 sm:px-9">
@@ -162,7 +145,6 @@ export default function ListingsPage() {
                         ))}
                     </div>
                 )}
-
                 {status === "failure" && (
                     <div className="mx-auto max-w-xl py-24 text-center">
                         <h1 className="text-2xl font-semibold text-gray-950">
@@ -173,7 +155,6 @@ export default function ListingsPage() {
                         </p>
                     </div>
                 )}
-
                 {status === "empty" && (
                     <div className="mx-auto max-w-xl py-24 text-center">
                         <h1 className="text-2xl font-semibold text-gray-950">
@@ -184,15 +165,14 @@ export default function ListingsPage() {
                         </p>
                     </div>
                 )}
-
                 {status === "success" && (
                     <div className="space-y-14">
-                        {sections.map((section, sectionIndex) => (
+                        {Object.entries(sections).map(([city, section], sectionIndex) => (
                             <section key={sectionIndex}>
                                 <div className="mb-4 flex items-center justify-between gap-4">
                                     <div className="flex min-w-0 items-center gap-2">
                                         <h1 className="truncate text-xl font-semibold text-gray-950 sm:text-2xl">
-                                            {getSectionTitle(sectionIndex, location)}
+                                            Stays in {city}
                                         </h1>
                                         <span className="rounded-full bg-gray-100 p-1 text-gray-800">
                                             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.8" stroke="currentColor" className="size-4">
@@ -202,8 +182,7 @@ export default function ListingsPage() {
                                     </div>
                                     <SectionControls />
                                 </div>
-
-                                <div className="flex gap-3 overflow-x-auto pb-2 sm:gap-4">
+                                <div className="hide-scrollbar flex gap-3 overflow-x-auto pb-2 sm:gap-4">
                                     {section.map((place, index) => (
                                         <ListingCard
                                             key={place._id}
