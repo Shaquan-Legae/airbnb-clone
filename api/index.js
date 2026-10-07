@@ -12,6 +12,8 @@ const imageDownloader = require("image-downloader");
 const multer = require("multer");
 const Place = require("./models/places");
 const Reservation = require("./models/reservations");
+const swaggerUi = require("swagger-ui-express");
+const swaggerDocument = require("./swagger");
 
 const app = express();
 const port = process.env.PORT || 4000;
@@ -60,6 +62,9 @@ mongoose
   .catch((err) => {
     console.error("MongoDB connection error:", err);
   });
+
+app.use("/docs", swaggerUi.serve, swaggerUi.setup(swaggerDocument));
+app.get("/docs.json", (req, res) => res.json(swaggerDocument));
 
 app.get("/test", (req, res) => {
   console.log("TEST ROUTE HIT");
