@@ -26,4 +26,11 @@ dist-ssr
 
 
 CHANGES.md
-.env.env
+.env
+.env.*
+*.env
+*.env.*
+api/atlas.env
+!client/.env.production
+!client/.env.development
+!api/.env.example
