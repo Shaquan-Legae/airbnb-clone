@@ -29,27 +29,31 @@ function normalizeRole(role) {
   return allowedRoles.includes(role) ? role : "guest";
 }
 
+const allowedOrigins = [
+  "http://localhost:5173",
+  "http://127.0.0.1:5173",
+  process.env.FRONTEND_URL,
+  "https://airbnb-clone-frontend-t3ml.onrender.com",
+].filter(Boolean);
+
 const corsOptions = {
-  origin: [
-    "http://localhost:5173",
-    "http://127.0.0.1:5173",
-    "https://airbnb-clone-frontend-t3ml.onrender.com",
-  ],
+  origin: allowedOrigins,
   credentials: true,
   methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
   allowedHeaders: ["Content-Type", "Authorization"],
 };
 
+app.set("trust proxy", 1);
 app.use(cors(corsOptions));
 app.options(/.*/, cors(corsOptions));
 
 app.use(express.json());
 app.use(cookieParser());
 
-console.log("MongoDB connection string:", process.env.MONGO_URL);
+const mongoUrl = process.env.MONGO_URL || process.env.MONGODB_URI;
 
 mongoose
-  .connect(process.env.MONGO_URL)
+  .connect(mongoUrl)
   .then(() => {
     console.log("MongoDB connected successfully");
   })
@@ -119,7 +123,11 @@ app.post("/upload", photosMiddleware.array("photos", 100), (req, res) => {
 });
 
 async function authMiddleware(req, res, next) {
-  const token = req.cookies?.token;
+  let token = req.cookies?.token;
+  if (!token && req.headers.authorization?.startsWith("Bearer ")) {
+    token = req.headers.authorization.split(" ")[1];
+  }
+
   if (!token) {
     return res.status(401).json({ error: "Unauthorized" });
   }
@@ -437,6 +445,7 @@ app.post("/register", async (req, res) => {
 
     return res.status(201).json({
       message: "Registration successful",
+      token,
       user: {
         ...getUserResponse(newUser),
       },
@@ -906,6 +915,7 @@ app.post("/login", async (req, res) => {
 
     return res.status(200).json({
       message: "Login successful",
+      token,
       user: getUserResponse(user),
     });
   } catch (error) {

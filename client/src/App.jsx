@@ -14,8 +14,10 @@ import SinglePlacePage from './pages/SinglePlacePage';
 import UserContextProvider from './context/UserContextProvider';
 import { UserContext } from './context/UserContext';
 
-
-axios.defaults.baseURL = 'https://airbnb-clone-backend-r26p.onrender.com';
+axios.defaults.baseURL =
+  import.meta.env.VITE_API_URL ||
+  import.meta.env.VITE_API_BASE_URL ||
+  'http://localhost:4000';
 axios.defaults.withCredentials = true;
 
 function AppRoutes() {

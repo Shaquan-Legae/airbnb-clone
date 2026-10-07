@@ -4,7 +4,11 @@ export function getPhotoUrl(photo) {
     }
 
     const filename = String(photo).split(/[\\/]/).pop();
-    return `https://airbnb-clone-backend-r26p.onrender.com/uploads/${filename}`;
+    const apiBaseUrl =
+        import.meta.env.VITE_API_URL ||
+        import.meta.env.VITE_API_BASE_URL ||
+        "http://localhost:4000";
+    return `${apiBaseUrl}/uploads/${filename}`;
 }
 
 export function formatCurrency(price) {
