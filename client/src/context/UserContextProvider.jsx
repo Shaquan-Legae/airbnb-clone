@@ -1,6 +1,7 @@
 import axios from 'axios';
 import { UserContext } from "./UserContext";
 import { useState, useEffect } from 'react';
+import { clearAuthToken } from '../utils/apiConfig';
 
 export default function UserContextProvider({ children }) {
     const [user, setUser] = useState(null);
@@ -14,9 +15,12 @@ export default function UserContextProvider({ children }) {
                 userData.role = userData.role ?? "guest";
             }
             setUser(userData);
+            return userData;
         } catch (err) {
             console.error('Failed to fetch profile:', err);
+            clearAuthToken();
             setUser(null);
+            return null;
         } finally {
             setLoading(false);
         }

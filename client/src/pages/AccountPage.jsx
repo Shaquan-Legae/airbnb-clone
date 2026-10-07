@@ -7,6 +7,7 @@ import {
     useLocation,
 } from "react-router-dom";
 import axios from "axios";
+import { clearAuthToken } from "../utils/apiConfig";
 import PlacesPage from "./PlacesPage";
 import Footer from "../components/Footer";
 import AccountNav from "../components/AccountNav";
@@ -210,11 +211,13 @@ export default function AccountPage() {
     async function logout() {
         try {
             await axios.post("/logout");
+        } catch (err) {
+            console.error("Logout failed:", err);
+        } finally {
+            clearAuthToken();
             setUser(null);
             navigate("/login");
             setRedirect("/");
-        } catch (err) {
-            console.error("Logout failed:", err);
         }
     }
 

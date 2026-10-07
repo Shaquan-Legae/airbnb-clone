@@ -3,6 +3,7 @@ import { Link, useLocation, useNavigate } from "react-router-dom";
 import axios from "axios";
 import { UserContext } from "../context/UserContext";
 import { getPhotoUrl } from "../utils/place";
+import { clearAuthToken } from "../utils/apiConfig";
 
 function HeaderSearch({ search }) {
     const navigate = useNavigate();
@@ -103,10 +104,16 @@ export default function Header() {
     }, []);
 
     async function logout() {
-        await axios.post("/logout");
-        setUser(null);
-        setIsMenuOpen(false);
-        navigate("/login");
+        try {
+            await axios.post("/logout");
+        } catch (err) {
+            console.error("Logout request error:", err);
+        } finally {
+            clearAuthToken();
+            setUser(null);
+            setIsMenuOpen(false);
+            navigate("/login");
+        }
     }
 
     function goToProfileFlow() {

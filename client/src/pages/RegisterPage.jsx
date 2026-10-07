@@ -2,6 +2,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { useState, useContext } from "react";
 import axios from "axios";
 import { UserContext } from "../context/UserContext";
+import { setAuthToken } from "../utils/apiConfig";
 
 export default function RegisterPage() {
     const navigate = useNavigate();
@@ -41,6 +42,9 @@ export default function RegisterPage() {
                 password,
             });
             console.log('Registration response:', response.data);
+            if (response.data.token) {
+                setAuthToken(response.data.token);
+            }
             if (response.data.user) {
                 setUser(response.data.user);
                 await refreshUser();

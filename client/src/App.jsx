@@ -14,11 +14,33 @@ import SinglePlacePage from './pages/SinglePlacePage';
 import UserContextProvider from './context/UserContextProvider';
 import { UserContext } from './context/UserContext';
 
-axios.defaults.baseURL =
-  import.meta.env.VITE_API_URL ||
-  import.meta.env.VITE_API_BASE_URL ||
-  'http://localhost:4000';
+import { getApiBaseUrl, getAuthToken, clearAuthToken } from './utils/apiConfig';
+
+axios.defaults.baseURL = getApiBaseUrl();
 axios.defaults.withCredentials = true;
+
+const initialToken = getAuthToken();
+if (initialToken) {
+  axios.defaults.headers.common['Authorization'] = `Bearer ${initialToken}`;
+}
+
+axios.interceptors.request.use((config) => {
+  const token = getAuthToken();
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
+  }
+  return config;
+});
+
+axios.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.response?.status === 401) {
+      clearAuthToken();
+    }
+    return Promise.reject(error);
+  }
+);
 
 function AppRoutes() {
   const context = useContext(UserContext);

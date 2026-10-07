@@ -1,13 +1,12 @@
+import { getApiBaseUrl } from "./apiConfig";
+
 export function getPhotoUrl(photo) {
     if (!photo) {
         return "";
     }
 
     const filename = String(photo).split(/[\\/]/).pop();
-    const apiBaseUrl =
-        import.meta.env.VITE_API_URL ||
-        import.meta.env.VITE_API_BASE_URL ||
-        "http://localhost:4000";
+    const apiBaseUrl = getApiBaseUrl();
     return `${apiBaseUrl}/uploads/${filename}`;
 }
 
