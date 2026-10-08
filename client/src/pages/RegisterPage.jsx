@@ -56,7 +56,15 @@ export default function RegisterPage() {
             }
         } catch (err) {
             console.error('Registration failed:', err);
-            setError(err.response?.data?.error || 'Registration failed. Please try again.');
+            const backendError = err.response?.data?.error;
+            const backendDetails = err.response?.data?.details;
+            if (backendError && backendDetails) {
+                setError(`${backendError} (${backendDetails})`);
+            } else if (backendError) {
+                setError(backendError);
+            } else {
+                setError('Registration failed. Please try again.');
+            }
         } finally {
             setIsLoading(false);
         }

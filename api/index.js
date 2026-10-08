@@ -66,19 +66,66 @@ const mongoUrl = process.env.MONGO_URL || process.env.MONGODB_URI;
 
 let lastMongoError = null;
 
-mongoose
-  .connect(mongoUrl)
-  .then(() => {
+async function connectToMongo() {
+  if (mongoose.connection.readyState === 1 || mongoose.connection.readyState === 2) {
+    return;
+  }
+  if (!mongoUrl) {
+    lastMongoError = "MONGO_URL or MONGODB_URI environment variable is missing.";
+    return;
+  }
+  try {
+    console.log("Connecting to MongoDB...");
+    await mongoose.connect(mongoUrl, {
+      serverSelectionTimeoutMS: 5000,
+    });
     lastMongoError = null;
     console.log("MongoDB connected successfully");
-  })
-  .catch((err) => {
+  } catch (err) {
     lastMongoError = err.message || String(err);
     console.error("MongoDB connection error:", err);
+  }
+}
+
+// Initial connection attempt
+connectToMongo();
+
+// Background retry loop every 10 seconds if disconnected
+setInterval(() => {
+  if (mongoose.connection.readyState !== 1 && mongoose.connection.readyState !== 2) {
+    connectToMongo();
+  }
+}, 10000);
+
+async function checkDbConnection(req, res, next) {
+  if (mongoose.connection.readyState === 1) {
+    return next();
+  }
+
+  // Attempt to reconnect immediately
+  await connectToMongo();
+
+  if (mongoose.connection.readyState === 1) {
+    return next();
+  }
+
+  return res.status(503).json({
+    error: "Database is not reachable. In MongoDB Atlas, please add 0.0.0.0/0 under Network Access > IP Access List.",
+    details: lastMongoError,
   });
+}
 
 app.use("/docs", swaggerUi.serve, swaggerUi.setup(swaggerDocument));
 app.get("/docs.json", (req, res) => res.json(swaggerDocument));
+
+app.get("/reconnect", async (req, res) => {
+  await connectToMongo();
+  return res.json({
+    connected: mongoose.connection.readyState === 1,
+    readyState: mongoose.connection.readyState,
+    error: lastMongoError,
+  });
+});
 
 app.get("/test", (req, res) => {
   console.log("TEST ROUTE HIT");
@@ -424,7 +471,7 @@ function getPlaceFields(body) {
   };
 }
 
-app.post("/register", async (req, res) => {
+app.post("/register", checkDbConnection, async (req, res) => {
   try {
     console.log("BODY:", req.body);
 
@@ -904,7 +951,7 @@ app.delete("/places/:id", authMiddleware, requireHost, async (req, res) => {
   }
 });
 
-app.post("/login", async (req, res) => {
+app.post("/login", checkDbConnection, async (req, res) => {
   try {
     const { email, password } = req.body || {};
     console.log("Login request received:", { email });
