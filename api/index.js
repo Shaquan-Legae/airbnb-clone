@@ -64,12 +64,16 @@ app.use(cookieParser());
 
 const mongoUrl = process.env.MONGO_URL || process.env.MONGODB_URI;
 
+let lastMongoError = null;
+
 mongoose
   .connect(mongoUrl)
   .then(() => {
+    lastMongoError = null;
     console.log("MongoDB connected successfully");
   })
   .catch((err) => {
+    lastMongoError = err.message || String(err);
     console.error("MongoDB connection error:", err);
   });
 
@@ -84,6 +88,15 @@ app.get("/test", (req, res) => {
     file: __filename,
     cwd: process.cwd(),
     time: new Date().toISOString(),
+    db: {
+      readyState: mongoose.connection.readyState,
+      connected: mongoose.connection.readyState === 1,
+      hasMongoUrl: Boolean(mongoUrl),
+      mongoTarget: mongoUrl
+        ? mongoUrl.replace(/mongodb(\+srv)?:\/\/[^@]+@/, "mongodb$1://***@")
+        : null,
+      error: lastMongoError,
+    },
   });
 });
 
